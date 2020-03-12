@@ -1,3 +1,4 @@
+const config = require('config');
 const express = require('express');
 const Joi = require('joi');
 const helmet = require('helmet');
@@ -5,6 +6,14 @@ const morgan = require('morgan');
 const logger = require('./logger');
 
 const app = express();
+
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`app: ${app.get('env')}`);
+
+console.log('Application name: ' + config.get('name'));
+console.log('Mail server: ' + config.get('mail.host'));
+console.log('Mail server password: ' + config.get('mail.password'));
+
 
 const courses = [
   { id: 1, name: 'course1' },
@@ -16,8 +25,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(helmet());
-app.use(morgan());
-app.use(logger)
+app.use(logger);
+
+if (app.get('env') === 'development') {
+  app.use(morgan('tiny'));
+  console.log('Morgan enabled...');
+}
 
 app.get('/', (req, res) => {
   res.send('Hello world!!!');
@@ -78,9 +91,6 @@ app.delete('/api/courses/:id', (req, res) => {
   res.send(course);
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Listening ${port}`));
-
 const validateCourse = (course) => {
   const schema = {
     name: Joi.string().min(3).required()
@@ -89,3 +99,6 @@ const validateCourse = (course) => {
   const result = Joi.validate(course, schema);
   return result;
 }
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Listening ${port}`));
