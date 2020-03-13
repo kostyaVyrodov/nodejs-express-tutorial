@@ -1,3 +1,6 @@
+const startupDebugger = require('debug')('app:startup');
+const dbDebugger = require('debug')('app:db');
+
 const config = require('config');
 const express = require('express');
 const Joi = require('joi');
@@ -27,13 +30,16 @@ app.use(express.static('public'));
 app.use(helmet());
 app.use(logger);
 
+app.set('view engine', 'pug');
+app.set('views', './views');
+
 if (app.get('env') === 'development') {
   app.use(morgan('tiny'));
-  console.log('Morgan enabled...');
+  startupDebugger('Morgan enabled...');
 }
 
 app.get('/', (req, res) => {
-  res.send('Hello world!!!');
+  res.render('index', { title: 'My Express App', message: 'hello' })
 });
 
 app.get('/api/courses', (req, res) => {
@@ -99,6 +105,8 @@ const validateCourse = (course) => {
   const result = Joi.validate(course, schema);
   return result;
 }
+
+dbDebugger('Connected to the database...')
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening ${port}`));
