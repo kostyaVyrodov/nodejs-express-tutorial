@@ -1,6 +1,7 @@
 const startupDebugger = require('debug')('app:startup');
 const dbDebugger = require('debug')('app:db');
 
+const mongoose = require('mongoose');
 const config = require('config');
 const express = require('express');
 const helmet = require('helmet');
@@ -12,12 +13,15 @@ const logger = require('./middleware/logger');
 
 const app = express();
 
-console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-console.log(`app: ${app.get('env')}`);
+startupDebugger(`NODE_ENV: ${process.env.NODE_ENV}`);
+startupDebugger(`app: ${app.get('env')}`);
+startupDebugger('Application name: ' + config.get('name'));
+startupDebugger('Mail server: ' + config.get('mail.host'));
+startupDebugger('Mail server password: ' + config.get('mail.password'));
 
-console.log('Application name: ' + config.get('name'));
-console.log('Mail server: ' + config.get('mail.host'));
-console.log('Mail server password: ' + config.get('mail.password'));
+mongoose.connect('mongodb://localhost/playground', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB...'))
+  .catch(() => console.log('Could not connect to MongoDB...'));
 
 if (app.get('env') === 'development') {
   app.use(morgan('tiny'));

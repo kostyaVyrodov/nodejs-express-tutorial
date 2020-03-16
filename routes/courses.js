@@ -1,19 +1,83 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Joi = require('joi');
 const router = express.Router()
 
-const courses = [
-  { id: 1, name: 'course1' },
-  { id: 2, name: 'course2' },
-  { id: 3, name: 'course3' },
-]
+mongoose.connect('mongodb://localhost/playground', { useNewUrlParser: true, useUnifiedTopology: true });
 
-router.get('/', (req, res) => {
+
+/** Types of mongo db schema
+ *  String,
+ *  Number,
+ *  Date,
+ *  Buffer,
+ *  Boolean,
+ *  ObjectID,
+ *  Array
+ * 
+ * Update approach: query + save, update directly
+ */
+
+const courseSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    minLength: 5,
+    maxLength: 255,
+    match: /pattern/
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['web', 'mobile', 'network'],
+    lowercase: true,
+    // uppercase: true
+    // trim: true
+  },
+  author: String,
+  tags: {
+    type: Array,
+    validate: {
+      validator: function (v) {
+        return v.length > 0;
+      },
+      message: 'A course should have at least one tag.'
+    }
+  },
+  date: { type: Date, default: Date.now() },
+  isPublished: Boolean,
+  price: {
+    type: Number,
+    required: function () { return this.isPublished },
+    min: 10,
+    max: 200,
+    get: v => Math.round(v),
+    set: v => Math.round(v)
+  }
+});
+
+const Course = mongoose.model('Course', courseSchema);
+
+router.get('/', async (req, res) => {
+  const courses = await Course.find()
+    .sort({ name: 1 })
+    .select({ name: 1, author: 1 });
   res.send(courses);
 });
 
-router.get('/:id', (req, res) => {
-  const course = courses.find((c) => c.id === parseInt(req.params.id, 10));
+
+router.get('/published', async (req, res) => {
+  const courses = await Course
+    .find({ isPublished: true })
+    .or([{ tags: 'frontend' }, { tags: 'backend' }])
+    .sort('-price')
+    .select({ name: 1, author: 1, price: 1 });
+
+  res.send(courses);
+});
+
+router.get('/:id', async (req, res) => {
+  const course = await Course.findById(req.params.id);
   if (!course) {
     res.status(404).send('The course with given ID does not exist');
   }
